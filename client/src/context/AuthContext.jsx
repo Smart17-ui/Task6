@@ -14,6 +14,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  // For the Log out button. Reloading the home page clears everything the previous user
+  // had loaded, which matters on a shared computer. It also avoids a race: clearing the
+  // user first would make a protected page redirect to /login before we could go home.
+  const signOut = useCallback(() => {
+    setToken(null);
+    window.location.assign('/');
+  }, []);
+
   useEffect(() => {
     // Log out automatically if any API call reports that our token is no longer valid.
     setUnauthorizedHandler(logout);
@@ -44,8 +52,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout]
+    () => ({ user, loading, login, register, signOut }),
+    [user, loading, login, register, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

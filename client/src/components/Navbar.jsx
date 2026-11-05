@@ -1,7 +1,7 @@
 // The top navigation bar. Its links depend on the user's role.
 import { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Link, NavLink } from 'react-router-dom';
+import { homePathFor, useAuth } from '../context/AuthContext';
 
 const LINKS_BY_ROLE = {
   student: [{ to: '/dashboard', label: 'My learning' }],
@@ -13,18 +13,11 @@ const LINKS_BY_ROLE = {
 };
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const links = [{ to: '/courses', label: 'Courses' }, ...(user ? LINKS_BY_ROLE[user.role] : [])];
   const closeMenu = () => setMenuOpen(false);
-
-  function handleLogout() {
-    logout();
-    closeMenu();
-    navigate('/');
-  }
 
   const linkClass = ({ isActive }) =>
     `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
@@ -35,7 +28,12 @@ export default function Navbar() {
     <header className="bg-brand">
       <nav aria-label="Main" className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between gap-4">
-          <Link to="/" onClick={closeMenu} className="font-display text-xl font-semibold text-white">
+          {/* Logged-in users go to their dashboard. Everyone else goes to the landing page. */}
+          <Link
+            to={user ? homePathFor(user) : '/'}
+            onClick={closeMenu}
+            className="font-display text-xl font-semibold text-white"
+          >
             <span className="text-accent">Lantern</span>
           </Link>
 
@@ -66,7 +64,7 @@ export default function Navbar() {
                   <span className="px-3 py-2 text-sm text-white/80 sm:px-0">{user.name}</span>
                   <button
                     type="button"
-                    onClick={handleLogout}
+                    onClick={signOut}
                     className="cursor-pointer rounded-md px-3 py-2 text-left text-sm font-medium text-white/80 hover:text-white"
                   >
                     Log out
