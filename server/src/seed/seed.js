@@ -44,6 +44,7 @@ async function enroll(student, course, lessons, completedCount, startedDaysAgo) 
   applyProgress(enrollment, lessons.length);
 
   const startedAt = Date.now() - startedDaysAgo * DAY_IN_MS;
+  enrollment.createdAt = new Date(startedAt);
   enrollment.activity.forEach((entry, index) => {
     entry.at = new Date(startedAt + index * DAY_IN_MS);
   });

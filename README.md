@@ -147,7 +147,8 @@ All paths start with `/api`. "Auth" means the request needs an `Authorization: B
 | --- | --- | --- | --- |
 | GET | `/courses` | Public | Published courses. Query: `search`, `category`, `level`, `page`, `limit` |
 | GET | `/courses/categories` | Public | Categories of published courses |
-| GET | `/courses/managed` | Instructor, admin | Own courses with stats (admins get all courses) |
+| GET | `/courses/managed` | Instructor, admin | Own courses with stats, plus overall totals (admins get all courses) |
+| GET | `/courses/managed/enrollments` | Instructor, admin | The newest students across those courses |
 | GET | `/courses/:id` | Public* | Course details, lesson outline, and your enrollment |
 | POST | `/courses` | Instructor, admin | Create a course (always starts as a draft) |
 | PUT | `/courses/:id` | Owner, admin | Update or publish a course |

@@ -25,16 +25,20 @@
   --color-success-soft: #e3f3ec;
 }
 
-body {
-  background-color: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-}
+/* Styles in the "base" layer are defaults that Tailwind's utility classes can override,
+   so a heading can still use "font-sans" when it needs to. */
+@layer base {
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
 
-h1,
-h2,
-h3 {
-  font-family: var(--font-display);
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
 }
 
 /* Reusable component classes, so the same long class list isn't repeated everywhere. */

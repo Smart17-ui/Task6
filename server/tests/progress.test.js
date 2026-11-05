@@ -181,6 +181,54 @@ describe('Instructor views of progress', () => {
     expect(managed.body.courses[0].averageProgress).toBe(25);
   });
 
+  it('counts a student in two courses once, and reports the completion rate', async () => {
+    const { course: second, lessons: secondLessons } = await createCourse(instructor.user, {
+      lessonCount: 1,
+    });
+    await request(app)
+      .post('/api/enrollments')
+      .set('Authorization', student.auth)
+      .send({ courseId: second._id });
+    await request(app)
+      .post(`/api/progress/${second._id}/lessons/${secondLessons[0]._id}/complete`)
+      .set('Authorization', student.auth);
+
+    const res = await request(app)
+      .get('/api/courses/managed')
+      .set('Authorization', instructor.auth);
+
+    expect(res.body.summary).toEqual({
+      students: 1,
+      enrollments: 2,
+      averageProgress: 50,
+      completionRate: 50,
+    });
+  });
+
+  it('keeps student progress out of the public catalogue', async () => {
+    const res = await request(app).get('/api/courses');
+
+    expect(res.body.courses[0].enrollmentCount).toBe(1);
+    expect(res.body.courses[0].averageProgress).toBeUndefined();
+    expect(res.body.courses[0].completedCount).toBeUndefined();
+  });
+
+  it("lists new students only from the instructor's own courses", async () => {
+    const other = await createUserAndLogin('instructor', 'other@test.com');
+
+    const own = await request(app)
+      .get('/api/courses/managed/enrollments')
+      .set('Authorization', instructor.auth);
+    const others = await request(app)
+      .get('/api/courses/managed/enrollments')
+      .set('Authorization', other.auth);
+
+    expect(own.body.enrollments).toHaveLength(1);
+    expect(own.body.enrollments[0].student.name).toBe(student.user.name);
+    expect(own.body.enrollments[0].student.email).toBeUndefined();
+    expect(others.body.enrollments).toHaveLength(0);
+  });
+
   it("does not show other instructors a course's students", async () => {
     const other = await createUserAndLogin('instructor', 'other@test.com');
     const res = await request(app)

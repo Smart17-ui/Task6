@@ -10,15 +10,24 @@ const {
   canViewCourse,
 } = require('../utils/courseAccess');
 
+// How many students the instructor dashboard's "new students" list shows.
+const RECENT_ENROLLMENTS_LIMIT = 6;
+
 // Escape special characters so a search like "c++" is treated as plain text rather
 // than as a regular expression (which could error or be very slow).
 function escapeRegex(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// Add lesson counts, enrollment counts, and average progress to a list of courses.
+// Counts how many enrollments have reached a given progress value, for use in $group.
+const countWhereProgressIs = (percent) => ({
+  $sum: { $cond: [{ $eq: ['$progressPercent', percent] }, 1, 0] },
+});
+
+// Add lesson and enrollment counts to a list of courses. Student progress is only
+// included on request, because it's for instructors and not the public catalogue.
 // Using one aggregation per collection avoids a separate query for every course.
-async function withStats(courses) {
+async function withStats(courses, { includeProgress = false } = {}) {
   const ids = courses.map((course) => course._id);
 
   const [lessonCounts, enrollmentStats] = await Promise.all([
@@ -28,7 +37,14 @@ async function withStats(courses) {
     ]),
     Enrollment.aggregate([
       { $match: { course: { $in: ids } } },
-      { $group: { _id: '$course', count: { $sum: 1 }, average: { $avg: '$progressPercent' } } },
+      {
+        $group: {
+          _id: '$course',
+          count: { $sum: 1 },
+          average: { $avg: '$progressPercent' },
+          completed: countWhereProgressIs(100),
+        },
+      },
     ]),
   ]);
 
@@ -37,14 +53,46 @@ async function withStats(courses) {
 
   return courses.map((course) => {
     const stats = statsByCourse.get(String(course._id));
-    return {
+    const summary = {
       ...course.toJSON(),
       lessonCount: lessonsByCourse.get(String(course._id)) || 0,
       enrollmentCount: stats ? stats.count : 0,
-      averageProgress: stats ? Math.round(stats.average) : 0,
     };
+    if (includeProgress) {
+      summary.averageProgress = stats ? Math.round(stats.average) : 0;
+      summary.completedCount = stats ? stats.completed : 0;
+    }
+    return summary;
   });
 }
+
+// Headline numbers across a set of courses. Students are counted once each, even if
+// they're enrolled in several of the courses.
+async function summarizeEnrollments(courseIds) {
+  const [totals] = await Enrollment.aggregate([
+    { $match: { course: { $in: courseIds } } },
+    {
+      $group: {
+        _id: null,
+        enrollments: { $sum: 1 },
+        students: { $addToSet: '$student' },
+        average: { $avg: '$progressPercent' },
+        completed: countWhereProgressIs(100),
+      },
+    },
+  ]);
+
+  if (!totals) return { students: 0, enrollments: 0, averageProgress: 0, completionRate: 0 };
+  return {
+    students: totals.students.length,
+    enrollments: totals.enrollments,
+    averageProgress: Math.round(totals.average),
+    completionRate: Math.round((totals.completed / totals.enrollments) * 100),
+  };
+}
+
+// Instructors manage their own courses; admins manage all of them.
+const managedCoursesFilter = (user) => (user.role === 'admin' ? {} : { instructor: user._id });
 
 // GET /api/courses?search=&category=&level=&page=&limit=
 async function listCourses(req, res) {
@@ -83,11 +131,34 @@ async function listCategories(req, res) {
 
 // GET /api/courses/managed - drives the instructor dashboard and admin course list.
 async function listManagedCourses(req, res) {
-  const filter = req.user.role === 'admin' ? {} : { instructor: req.user._id };
-  const courses = await Course.find(filter)
+  const courses = await Course.find(managedCoursesFilter(req.user))
     .populate('instructor', 'name email')
     .sort({ updatedAt: -1 });
-  res.json({ courses: await withStats(courses) });
+
+  res.json({
+    courses: await withStats(courses, { includeProgress: true }),
+    summary: await summarizeEnrollments(courses.map((course) => course._id)),
+  });
+}
+
+// GET /api/courses/managed/enrollments - the newest students across managed courses.
+async function listRecentEnrollments(req, res) {
+  const courses = await Course.find(managedCoursesFilter(req.user)).select('_id');
+  const enrollments = await Enrollment.find({ course: { $in: courses.map((c) => c._id) } })
+    .populate('student', 'name')
+    .populate('course', 'title')
+    .sort({ createdAt: -1 })
+    .limit(RECENT_ENROLLMENTS_LIMIT);
+
+  res.json({
+    enrollments: enrollments.map((enrollment) => ({
+      _id: enrollment._id,
+      student: enrollment.student,
+      course: enrollment.course,
+      progressPercent: enrollment.progressPercent,
+      enrolledAt: enrollment.createdAt,
+    })),
+  });
 }
 
 // GET /api/courses/:id - course details and lesson outline (never the lesson content).
@@ -207,6 +278,7 @@ module.exports = {
   listCourses,
   listCategories,
   listManagedCourses,
+  listRecentEnrollments,
   getCourse,
   createCourse,
   updateCourse,

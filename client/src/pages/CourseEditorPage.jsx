@@ -21,6 +21,7 @@ export default function CourseEditorPage() {
   const [formError, setFormError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   // Fill in the form once when the course arrives. Refreshing the data later (for
   // example after adding a lesson) must not wipe out edits the user hasn't saved.
@@ -77,6 +78,21 @@ export default function CourseEditorPage() {
       reload();
     } catch (err) {
       setFormError(err);
+    }
+  }
+
+  async function handleDelete() {
+    const confirmed = window.confirm(
+      `Delete "${course.title}"? Its lessons and all student progress will be permanently removed.`
+    );
+    if (!confirmed) return;
+
+    setDeleteError(null);
+    try {
+      await api.delete(`/courses/${courseId}`);
+      navigate('/instructor', { replace: true });
+    } catch (err) {
+      setDeleteError(err.message);
     }
   }
 
@@ -178,6 +194,22 @@ export default function CourseEditorPage() {
         <p className="text-sm text-muted">You can add lessons after creating the course.</p>
       ) : (
         <LessonManager courseId={courseId} onLessonsChanged={reload} />
+      )}
+
+      {/* Kept away from everyday actions, so a course can't be deleted by a stray click. */}
+      {course && (
+        <section aria-labelledby="delete-heading" className="card space-y-3 border-danger/30 p-6">
+          <h2 id="delete-heading" className="text-xl font-semibold">
+            Delete this course
+          </h2>
+          <p className="text-sm text-muted">
+            This permanently removes the course, its lessons, and all student progress. It can't be undone.
+          </p>
+          <ErrorBanner message={deleteError} />
+          <button type="button" onClick={handleDelete} className="btn-danger">
+            Delete this course
+          </button>
+        </section>
       )}
     </div>
   );

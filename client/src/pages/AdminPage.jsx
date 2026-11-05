@@ -2,11 +2,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
+import StatusBadge from '../components/StatusBadge';
 import { EmptyState, ErrorBanner, ErrorState, LoadingState } from '../components/StatusViews';
 import { useAuth } from '../context/AuthContext';
 import { useFetch } from '../hooks/useFetch';
 import { formatDate, pluralize } from '../utils/format';
-import { StatusBadge } from './InstructorDashboardPage';
 
 function UsersPanel() {
   const { user: currentUser } = useAuth();

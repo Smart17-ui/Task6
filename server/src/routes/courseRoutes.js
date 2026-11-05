@@ -51,6 +51,12 @@ router.get('/categories', controller.listCategories);
 
 // Instructors see their own courses here; admins see every course.
 router.get('/managed', requireAuth, requireRole('instructor', 'admin'), controller.listManagedCourses);
+router.get(
+  '/managed/enrollments',
+  requireAuth,
+  requireRole('instructor', 'admin'),
+  controller.listRecentEnrollments
+);
 
 router.post(
   '/',

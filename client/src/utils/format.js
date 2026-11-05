@@ -13,6 +13,35 @@ export function formatDate(value) {
   });
 }
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Whole calendar days between a date and today (0 means today).
+function daysAgo(value) {
+  const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return Math.round((startOfDay(new Date()) - startOfDay(new Date(value))) / MS_PER_DAY);
+}
+
+// A friendly date: "today", "yesterday", "3 days ago", then the full date after a week.
+export function timeAgo(value) {
+  const days = daysAgo(value);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+  return formatDate(value);
+}
+
+// Groups dated items under headings such as "Today" and "Yesterday", keeping their order.
+export function groupByDay(items, getDate) {
+  const groups = [];
+  for (const item of items) {
+    const label = capitalize(timeAgo(getDate(item)));
+    const lastGroup = groups[groups.length - 1];
+    if (lastGroup?.label === label) lastGroup.items.push(item);
+    else groups.push({ label, items: [item] });
+  }
+  return groups;
+}
+
 export function pluralize(count, word) {
   return `${count} ${word}${count === 1 ? '' : 's'}`;
 }
