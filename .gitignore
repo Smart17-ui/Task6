@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Secrets - never commit real environment files
+.env
+.env.local
+
+# Build and test output
+dist/
+coverage/
+
+# Editor and OS clutter
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* Design tokens. Tailwind turns each of these into utility classes, for example
+   --color-ink gives you "text-ink" and "bg-ink". Change the look of the whole app here. */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+
+  --color-paper: #f7f4ec; /* page background */
+  --color-surface: #fffdf8; /* cards and panels */
+  --color-line: #e3ddcf; /* borders */
+  --color-ink: #1f2a27; /* main text */
+  --color-muted: #5d6763; /* secondary text */
+
+  --color-brand: #1f3d36; /* deep green: primary buttons and the header */
+  --color-brand-hover: #2c5349;
+  --color-accent: #f2b84b; /* lantern yellow: highlights */
+  --color-progress: #2f7d6b; /* progress bars */
+  --color-track: #e7e1d3; /* the empty part of a progress bar */
+
+  --color-danger: #a93226;
+  --color-danger-soft: #fbeae7;
+  --color-success: #1d6b4f;
+  --color-success-soft: #e3f3ec;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
+
+/* Reusable component classes, so the same long class list isn't repeated everywhere. */
+@layer components {
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply bg-brand text-white hover:bg-brand-hover;
+  }
+  .btn-secondary {
+    @apply border border-line bg-surface text-ink hover:bg-paper;
+  }
+  .btn-danger {
+    @apply border border-danger/30 bg-surface text-danger hover:bg-danger-soft;
+  }
+  .card {
+    @apply rounded-xl border border-line bg-surface;
+  }
+  .input {
+    @apply w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-brand focus:outline-2 focus:outline-brand/30;
+  }
+  .page-title {
+    @apply text-3xl font-semibold text-ink;
+  }
+}
